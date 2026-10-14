@@ -336,6 +336,7 @@ public class NativeAudioPlayerModule extends NativeAudioPlayerSpec {
         }
 
         try {
+            audioService.clearLoop();
             audioService.stop();
 
             loopA = null;

@@ -119,8 +119,14 @@ const PlayerScreen = ({ route, navigation }: Props) => {
 
         if (state === 'playing') {
           setIsPlaying(true);
-        } else if (state === 'paused' || state === 'stopped') {
+        } else if (state === 'paused') {
           setIsPlaying(false);
+        } else if (state === 'stopped') {
+          setPosition(0);
+          setIsPlaying(false);
+          setLoopA(null);
+          setLoopB(null);
+          setLoopEnabled(false);
         }
 
         if (state === 'completed') {
@@ -285,6 +291,7 @@ const PlayerScreen = ({ route, navigation }: Props) => {
             onPress={() =>
               perform(async () => {
                 await AudioPlayer.stop();
+                await AudioPlayer.clearLoop();
 
                 setPosition(0);
                 setIsPlaying(false);

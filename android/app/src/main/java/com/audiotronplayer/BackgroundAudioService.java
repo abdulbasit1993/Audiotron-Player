@@ -491,6 +491,7 @@ public class BackgroundAudioService extends Service {
                 }
 
                 handler.removeCallbacks(loopChecker);
+                clearLoop();
 
                 updatePlaybackState(
                         PlaybackStateCompat.STATE_STOPPED,
@@ -725,6 +726,8 @@ public class BackgroundAudioService extends Service {
     }
 
     public void stop() {
+        clearLoop();
+
         if (mediaPlayer == null || released || !prepared) {
             return;
         }
@@ -887,6 +890,7 @@ public class BackgroundAudioService extends Service {
     public void clearLoop() {
         loopA = -1;
         loopB = -1;
+        handler.removeCallbacks(loopChecker);
     }
 
     public int getLoopA() {

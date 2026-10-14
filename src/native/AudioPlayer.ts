@@ -1,10 +1,11 @@
-import { NativeEventEmitter, NativeModules } from 'react-native';
+import { NativeEventEmitter } from 'react-native';
+import NativeAudioPlayer from '../../specs/NativeAudioPlayer';
 import type { PlaybackStateEvent } from '../../specs/NativeAudioPlayer';
 
-const { NativeAudioPlayer } = NativeModules;
-
-// Create event emitter for the native module
-export const audioPlayerEmitter = new NativeEventEmitter(NativeAudioPlayer);
+// Create event emitter for the native TurboModule
+export const audioPlayerEmitter = new NativeEventEmitter(
+  NativeAudioPlayer as any,
+);
 
 /**
  * Subscribe to playback state changes.

@@ -149,23 +149,25 @@ public class NativeAudioLibraryModule
             String treeUri,
             Promise promise) {
 
-        try {
-            WritableArray results = Arguments.createArray();
-            Uri rootUri = Uri.parse(treeUri);
+        new Thread(() -> {
+            try {
+                WritableArray results = Arguments.createArray();
+                Uri rootUri = Uri.parse(treeUri);
 
-            scanDirectory(
-                    rootUri,
-                    results,
-                    new HashSet<String>());
+                scanDirectory(
+                        rootUri,
+                        results,
+                        new HashSet<String>());
 
-            promise.resolve(results);
+                promise.resolve(results);
 
-        } catch (Exception e) {
-            promise.reject(
-                    "LIST_AUDIO_ERROR",
-                    e.getMessage(),
-                    e);
-        }
+            } catch (Exception e) {
+                promise.reject(
+                        "LIST_AUDIO_ERROR",
+                        e.getMessage(),
+                        e);
+            }
+        }).start();
     }
 
     private void scanDirectory(

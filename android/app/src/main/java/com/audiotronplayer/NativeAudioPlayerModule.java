@@ -51,16 +51,12 @@ public class NativeAudioPlayerModule extends NativeAudioPlayerSpec {
         );
 
         /*
-         * Start the service, then bind to it.
-         * BackgroundAudioService returns its LocalBinder from onBind().
+         * Bind to BackgroundAudioService using Context.BIND_AUTO_CREATE.
+         * We do not call startForegroundService() here on startup, because
+         * Android requires startForeground() to be called within 5 seconds,
+         * which causes an ANR when no audio is currently playing.
          */
         try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                context.startForegroundService(intent);
-            } else {
-                context.startService(intent);
-            }
-
             context.bindService(
                     intent,
                     serviceConnection,
@@ -69,7 +65,23 @@ public class NativeAudioPlayerModule extends NativeAudioPlayerSpec {
         } catch (Exception e) {
             android.util.Log.e(
                     NAME,
-                    "Unable to start or bind audio service",
+                    "Unable to bind audio service",
+                    e
+            );
+        }
+    }
+
+    private void startServiceExplicitly() {
+        try {
+            Intent intent = new Intent(
+                    getReactApplicationContext(),
+                    BackgroundAudioService.class
+            );
+            getReactApplicationContext().startService(intent);
+        } catch (Exception e) {
+            android.util.Log.w(
+                    NAME,
+                    "Unable to start audio service explicitly",
                     e
             );
         }
@@ -236,6 +248,7 @@ public class NativeAudioPlayerModule extends NativeAudioPlayerSpec {
         }
 
         try {
+            startServiceExplicitly();
             handler.removeCallbacks(playbackChecker);
 
             loopA = null;
@@ -284,6 +297,7 @@ public class NativeAudioPlayerModule extends NativeAudioPlayerSpec {
         }
 
         try {
+            startServiceExplicitly();
             audioService.play();
             released = false;
 

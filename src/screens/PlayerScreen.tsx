@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -13,9 +13,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Slider from '@react-native-community/slider';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/RootStack';
+import { useTheme } from '../context/ThemeContext';
+import { ThemeColors } from '../theme/colors';
 
 import AudioPlayer, { subscribeToPlaybackState } from '../native/AudioPlayer';
 import type { PlaybackStateEvent } from '../../specs/NativeAudioPlayer';
+
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Player'>;
 
@@ -88,6 +91,9 @@ const PlayerScreen = ({ route, navigation }: Props) => {
       // seamlessly when user navigates back to Home or between screens!
     };
   }, [uri]);
+
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   useEffect(() => {
     if (loading) return;
@@ -190,7 +196,7 @@ const PlayerScreen = ({ route, navigation }: Props) => {
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <ActivityIndicator size="large" color="#2563EB" />
+        <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.status}>Loading audio...</Text>
       </SafeAreaView>
     );
@@ -202,6 +208,8 @@ const PlayerScreen = ({ route, navigation }: Props) => {
         <Pressable
           style={styles.backButton}
           onPress={() => navigation.goBack()}
+          accessibilityRole="button"
+          accessibilityLabel="Back to library"
         >
           <Text style={styles.backButtonText}>← Library</Text>
         </Pressable>
@@ -227,9 +235,9 @@ const PlayerScreen = ({ route, navigation }: Props) => {
             minimumValue={0}
             maximumValue={Math.max(duration, 1)}
             value={Math.min(position, duration)}
-            minimumTrackTintColor="#2563EB"
-            maximumTrackTintColor="#D4D4D8"
-            thumbTintColor="#2563EB"
+            minimumTrackTintColor={colors.sliderMinTrack}
+            maximumTrackTintColor={colors.sliderMaxTrack}
+            thumbTintColor={colors.sliderThumb}
             disabled={duration <= 0}
             onSlidingStart={() => {
               isSeeking.current = true;
@@ -251,6 +259,7 @@ const PlayerScreen = ({ route, navigation }: Props) => {
         <View style={styles.controls}>
           <PlayerButton
             label="▶ Play"
+            styles={styles}
             onPress={() =>
               perform(async () => {
                 await AudioPlayer.play();
@@ -261,6 +270,7 @@ const PlayerScreen = ({ route, navigation }: Props) => {
 
           <PlayerButton
             label="Ⅱ Pause"
+            styles={styles}
             onPress={() =>
               perform(async () => {
                 await AudioPlayer.pause();
@@ -271,6 +281,7 @@ const PlayerScreen = ({ route, navigation }: Props) => {
 
           <PlayerButton
             label="■ Stop"
+            styles={styles}
             onPress={() =>
               perform(async () => {
                 await AudioPlayer.stop();
@@ -297,11 +308,16 @@ const PlayerScreen = ({ route, navigation }: Props) => {
           </Text>
 
           <View style={styles.controls}>
-            <PlayerButton label="Set A" onPress={markA} />
-            <PlayerButton label="Set B" onPress={markB} />
+            <PlayerButton label="Set A" styles={styles} onPress={markA} />
+            <PlayerButton label="Set B" styles={styles} onPress={markB} />
           </View>
 
-          <PlayerButton label="Clear Loop" onPress={clearLoop} secondary />
+          <PlayerButton
+            label="Clear Loop"
+            styles={styles}
+            onPress={clearLoop}
+            secondary
+          />
 
           <Text style={styles.loopStatus}>
             {loopEnabled ? 'Loop enabled' : 'Loop disabled'}
@@ -316,10 +332,12 @@ function PlayerButton({
   label,
   onPress,
   secondary = false,
+  styles,
 }: {
   label: string;
   onPress: () => void;
   secondary?: boolean;
+  styles: ReturnType<typeof createStyles>;
 }) {
   return (
     <TouchableOpacity
@@ -336,134 +354,138 @@ function PlayerButton({
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  header: {
-    paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 4,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  backButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    backgroundColor: '#F3F4F6',
-  },
-  backButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#2563EB',
-  },
-  content: {
-    paddingHorizontal: 24,
-    paddingBottom: 24,
-    alignItems: 'center',
-  },
-  artwork: {
-    width: 150,
-    height: 150,
-    borderRadius: 24,
-    backgroundColor: '#DBEAFE',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 16,
-    marginBottom: 20,
-  },
-  musicNote: {
-    fontSize: 76,
-    color: '#2563EB',
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#171717',
-    textAlign: 'center',
-  },
-  subtitle: {
-    color: '#737373',
-    marginTop: 6,
-    marginBottom: 16,
-    fontSize: 14,
-  },
-  seekContainer: {
-    alignSelf: 'stretch',
-    marginBottom: 12,
-  },
-  slider: {
-    width: '100%',
-    height: 40,
-  },
-  timeRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 4,
-  },
-  timeText: {
-    color: '#525252',
-    fontSize: 13,
-    fontVariant: ['tabular-nums'],
-  },
-  controls: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    flexWrap: 'wrap',
-    gap: 10,
-    marginVertical: 12,
-  },
-  button: {
-    backgroundColor: '#2563EB',
-    paddingVertical: 13,
-    paddingHorizontal: 16,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minWidth: 90,
-  },
-  buttonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  secondaryButton: {
-    backgroundColor: '#E5E5E5',
-    alignSelf: 'stretch',
-  },
-  secondaryButtonText: {
-    color: '#171717',
-  },
-  loopCard: {
-    alignSelf: 'stretch',
-    backgroundColor: '#F5F5F5',
-    borderRadius: 16,
-    padding: 18,
-    marginTop: 20,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#171717',
-    marginBottom: 12,
-  },
-  marker: {
-    color: '#404040',
-    fontSize: 15,
-    marginVertical: 4,
-  },
-  loopStatus: {
-    textAlign: 'center',
-    color: '#737373',
-    marginTop: 12,
-  },
-  status: {
-    textAlign: 'center',
-    marginTop: 12,
-    color: '#737373',
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    header: {
+      paddingHorizontal: 20,
+      paddingTop: 8,
+      paddingBottom: 4,
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    backButton: {
+      paddingVertical: 8,
+      paddingHorizontal: 12,
+      borderRadius: 8,
+      backgroundColor: colors.surface,
+    },
+    backButtonText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: colors.primary,
+    },
+    content: {
+      paddingHorizontal: 24,
+      paddingBottom: 24,
+      alignItems: 'center',
+    },
+    artwork: {
+      width: 150,
+      height: 150,
+      borderRadius: 24,
+      backgroundColor: colors.iconBackground,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginTop: 16,
+      marginBottom: 20,
+    },
+    musicNote: {
+      fontSize: 76,
+      color: colors.iconTint,
+    },
+    title: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: colors.text,
+      textAlign: 'center',
+    },
+    subtitle: {
+      color: colors.textMuted,
+      marginTop: 6,
+      marginBottom: 16,
+      fontSize: 14,
+    },
+    seekContainer: {
+      alignSelf: 'stretch',
+      marginBottom: 12,
+    },
+    slider: {
+      width: '100%',
+      height: 40,
+    },
+    timeRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      paddingHorizontal: 4,
+    },
+    timeText: {
+      color: colors.textSecondary,
+      fontSize: 13,
+      fontVariant: ['tabular-nums'],
+    },
+    controls: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      flexWrap: 'wrap',
+      gap: 10,
+      marginVertical: 12,
+    },
+    button: {
+      backgroundColor: colors.primary,
+      paddingVertical: 13,
+      paddingHorizontal: 16,
+      borderRadius: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
+      minWidth: 90,
+    },
+    buttonText: {
+      color: colors.primaryText,
+      fontSize: 14,
+      fontWeight: '600',
+    },
+    secondaryButton: {
+      backgroundColor: colors.secondaryButton,
+      alignSelf: 'stretch',
+    },
+    secondaryButtonText: {
+      color: colors.secondaryButtonText,
+    },
+    loopCard: {
+      alignSelf: 'stretch',
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      borderRadius: 16,
+      padding: 18,
+      marginTop: 20,
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: colors.text,
+      marginBottom: 12,
+    },
+    marker: {
+      color: colors.textSecondary,
+      fontSize: 15,
+      marginVertical: 4,
+    },
+    loopStatus: {
+      textAlign: 'center',
+      color: colors.textMuted,
+      marginTop: 12,
+    },
+    status: {
+      textAlign: 'center',
+      marginTop: 12,
+      color: colors.textMuted,
+    },
+  });
 
 export default PlayerScreen;
+

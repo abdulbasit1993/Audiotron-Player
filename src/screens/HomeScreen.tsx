@@ -15,11 +15,16 @@ import AudioLibrary from '../native/AudioLibrary';
 import type { AudioFile } from '../../specs/NativeAudioLibrary';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/RootStack';
+import { useTheme } from '../context/ThemeContext';
+import { ThemeColors } from '../theme/colors';
 
 type SortOrder = 'asc' | 'desc';
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 
 const HomeScreen = ({ navigation }: { navigation: NavigationProp }) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const [files, setFiles] = useState<AudioFile[]>([]);
   const [folderUri, setFolderUri] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -73,7 +78,20 @@ const HomeScreen = ({ navigation }: { navigation: NavigationProp }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>Audio Library</Text>
+      <View style={styles.header}>
+        <Text style={styles.title}>Audio Library</Text>
+        <TouchableOpacity
+          style={styles.settingsButton}
+          onPress={() => navigation.navigate('Settings')}
+          accessibilityRole="button"
+          accessibilityLabel="Settings"
+          accessibilityHint="Navigates to application settings"
+          activeOpacity={0.7}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Text style={styles.settingsIcon}>⚙</Text>
+        </TouchableOpacity>
+      </View>
 
       <Pressable
         style={styles.button}
@@ -85,7 +103,13 @@ const HomeScreen = ({ navigation }: { navigation: NavigationProp }) => {
         </Text>
       </Pressable>
 
-      {loading && <ActivityIndicator style={styles.loader} />}
+      {loading && (
+        <ActivityIndicator
+          style={styles.loader}
+          size="large"
+          color={colors.primary}
+        />
+      )}
 
       {!!error && <Text style={styles.error}>{error}</Text>}
 
@@ -97,7 +121,7 @@ const HomeScreen = ({ navigation }: { navigation: NavigationProp }) => {
             placeholder="Search by name..."
             value={searchQuery}
             onChangeText={setSearchQuery}
-            placeholderTextColor="#A3A3A3"
+            placeholderTextColor={colors.textPlaceholder}
             autoCapitalize="none"
             autoCorrect={false}
           />
@@ -141,7 +165,7 @@ const HomeScreen = ({ navigation }: { navigation: NavigationProp }) => {
             }
           >
             <View style={styles.icon}>
-              <Text>♫</Text>
+              <Text style={styles.iconText}>♫</Text>
             </View>
 
             <View style={styles.fileInfo}>
@@ -161,107 +185,132 @@ const HomeScreen = ({ navigation }: { navigation: NavigationProp }) => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    backgroundColor: '#fff',
-  },
-  title: {
-    fontSize: 26,
-    fontWeight: '700',
-    marginBottom: 20,
-    color: '#171717',
-  },
-  button: {
-    backgroundColor: '#2563EB',
-    padding: 15,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  buttonText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-  },
-  loader: {
-    marginVertical: 20,
-  },
-  error: {
-    color: '#DC2626',
-    marginBottom: 12,
-  },
-  empty: {
-    color: '#737373',
-    marginVertical: 20,
-  },
-  searchInput: {
-    borderWidth: 1,
-    borderColor: '#D4D4D4',
-    borderRadius: 10,
-    padding: 14,
-    fontSize: 16,
-    color: '#171717',
-    backgroundColor: '#FAFAFA',
-    marginBottom: 12,
-  },
-  sortButton: {
-    backgroundColor: '#F5F5F5',
-    borderWidth: 1,
-    borderColor: '#D4D4D4',
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 16,
-    alignItems: 'center',
-  },
-  sortButtonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  sortButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#404040',
-  },
-  sortArrow: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#2563EB',
-  },
-  file: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#D4D4D4',
-  },
-  icon: {
-    width: 42,
-    height: 42,
-    borderRadius: 10,
-    backgroundColor: '#DBEAFE',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  fileInfo: {
-    flex: 1,
-    marginHorizontal: 12,
-  },
-  fileName: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#171717',
-  },
-  fileSize: {
-    color: '#737373',
-    fontSize: 12,
-    marginTop: 4,
-  },
-  play: {
-    fontSize: 18,
-    color: '#2563EB',
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      padding: 20,
+      backgroundColor: colors.background,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 20,
+    },
+    title: {
+      fontSize: 26,
+      fontWeight: '700',
+      color: colors.text,
+    },
+    settingsButton: {
+      width: 42,
+      height: 42,
+      borderRadius: 10,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    settingsIcon: {
+      fontSize: 20,
+      color: colors.textSecondary,
+    },
+    button: {
+      backgroundColor: colors.primary,
+      padding: 15,
+      borderRadius: 10,
+      alignItems: 'center',
+      marginBottom: 20,
+    },
+    buttonText: {
+      color: colors.primaryText,
+      fontWeight: '600',
+    },
+    loader: {
+      marginVertical: 20,
+    },
+    error: {
+      color: colors.error,
+      marginBottom: 12,
+    },
+    empty: {
+      color: colors.textMuted,
+      marginVertical: 20,
+    },
+    searchInput: {
+      borderWidth: 1,
+      borderColor: colors.inputBorder,
+      borderRadius: 10,
+      padding: 14,
+      fontSize: 16,
+      color: colors.inputText,
+      backgroundColor: colors.inputBackground,
+      marginBottom: 12,
+    },
+    sortButton: {
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 10,
+      padding: 12,
+      marginBottom: 16,
+      alignItems: 'center',
+    },
+    sortButtonContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    sortButtonText: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: colors.text,
+    },
+    sortArrow: {
+      fontSize: 17,
+      fontWeight: '700',
+      color: colors.primary,
+    },
+    file: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 14,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: colors.borderSubtle,
+    },
+    icon: {
+      width: 42,
+      height: 42,
+      borderRadius: 10,
+      backgroundColor: colors.iconBackground,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    iconText: {
+      fontSize: 18,
+      color: colors.iconTint,
+    },
+    fileInfo: {
+      flex: 1,
+      marginHorizontal: 12,
+    },
+    fileName: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: colors.text,
+    },
+    fileSize: {
+      color: colors.textMuted,
+      fontSize: 12,
+      marginTop: 4,
+    },
+    play: {
+      fontSize: 18,
+      color: colors.primary,
+    },
+  });
 
 export default HomeScreen;
+

@@ -73,6 +73,9 @@ public class BackgroundAudioService extends Service {
     private int loopA = -1;
     private int loopB = -1;
 
+    private volatile boolean isLoopSeeking = false;
+    private long loopSeekStartTime = 0;
+
     private boolean released = false;
     private boolean prepared = false;
     private boolean foregroundStarted = false;
@@ -115,16 +118,25 @@ public class BackgroundAudioService extends Service {
             try {
                 if (mediaPlayer.isPlaying()
                         && loopA >= 0
-                        && loopB > loopA
-                        && mediaPlayer.getCurrentPosition() >= loopB) {
+                        && loopB > loopA) {
 
-                    seekTo(loopA);
+                    if (isLoopSeeking && System.currentTimeMillis() - loopSeekStartTime > 1000) {
+                        isLoopSeeking = false;
+                    }
+
+                    if (mediaPlayer.getCurrentPosition() >= loopB) {
+                        if (!isLoopSeeking) {
+                            isLoopSeeking = true;
+                            loopSeekStartTime = System.currentTimeMillis();
+                            seekTo(loopA, mp -> isLoopSeeking = false);
+                        }
+                    }
+
+                    handler.postDelayed(this, 100);
                 }
             } catch (IllegalStateException e) {
                 Log.w(TAG, "Unable to check A-B loop position.", e);
             }
-
-            handler.postDelayed(this, 100);
         }
     };
 
@@ -469,7 +481,9 @@ public class BackgroundAudioService extends Service {
                     );
 
                     handler.removeCallbacks(loopChecker);
-                    handler.post(loopChecker);
+                    if (loopA >= 0 && loopB > loopA) {
+                        handler.post(loopChecker);
+                    }
 
                     if (callback != null) {
                         callback.onSuccess(mp.getDuration());
@@ -688,7 +702,9 @@ public class BackgroundAudioService extends Service {
             );
 
             handler.removeCallbacks(loopChecker);
-            handler.post(loopChecker);
+            if (loopA >= 0 && loopB > loopA) {
+                handler.post(loopChecker);
+            }
         } catch (IllegalStateException e) {
             Log.e(TAG, "Unable to play audio.", e);
         }
@@ -711,6 +727,7 @@ public class BackgroundAudioService extends Service {
             );
 
             handler.removeCallbacks(loopChecker);
+            isLoopSeeking = false;
 
             if (foregroundStarted) {
                 ServiceCompat.stopForeground(
@@ -747,6 +764,7 @@ public class BackgroundAudioService extends Service {
             );
 
             handler.removeCallbacks(loopChecker);
+            isLoopSeeking = false;
 
             if (foregroundStarted) {
                 ServiceCompat.stopForeground(
@@ -816,6 +834,7 @@ public class BackgroundAudioService extends Service {
 
     public void seekTo(int position, MediaPlayer.OnSeekCompleteListener listener) {
         if (mediaPlayer == null || released || !prepared) {
+            isLoopSeeking = false;
             if (listener != null) {
                 listener.onSeekComplete(mediaPlayer);
             }
@@ -830,6 +849,7 @@ public class BackgroundAudioService extends Service {
             );
 
             mediaPlayer.setOnSeekCompleteListener(mp -> {
+                isLoopSeeking = false;
                 updatePlaybackState(
                         getPlaybackState(),
                         safePosition,
@@ -847,6 +867,7 @@ public class BackgroundAudioService extends Service {
             }
         } catch (IllegalStateException e) {
             Log.e(TAG, "Unable to seek audio.", e);
+            isLoopSeeking = false;
             if (listener != null) {
                 listener.onSeekComplete(mediaPlayer);
             }
@@ -863,10 +884,9 @@ public class BackgroundAudioService extends Service {
         }
 
         loopA = getCurrentPosition();
-
-        if (loopB <= loopA) {
-            loopB = -1;
-        }
+        loopB = -1;
+        isLoopSeeking = false;
+        handler.removeCallbacks(loopChecker);
 
         return loopA;
     }
@@ -884,12 +904,20 @@ public class BackgroundAudioService extends Service {
         }
 
         loopB = position;
+        isLoopSeeking = false;
+
+        if (mediaPlayer.isPlaying()) {
+            handler.removeCallbacks(loopChecker);
+            handler.post(loopChecker);
+        }
+
         return loopB;
     }
 
     public void clearLoop() {
         loopA = -1;
         loopB = -1;
+        isLoopSeeking = false;
         handler.removeCallbacks(loopChecker);
     }
 
@@ -907,6 +935,7 @@ public class BackgroundAudioService extends Service {
 
     private void releasePlayer() {
         handler.removeCallbacks(loopChecker);
+        isLoopSeeking = false;
         prepared = false;
 
         MediaPlayer oldPlayer = mediaPlayer;
@@ -936,6 +965,7 @@ public class BackgroundAudioService extends Service {
         currentUri = null;
         loopA = -1;
         loopB = -1;
+        isLoopSeeking = false;
 
         if (audioManager != null) {
             audioManager.abandonAudioFocus(audioFocusChangeListener);
